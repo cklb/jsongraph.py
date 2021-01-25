@@ -14,6 +14,7 @@ None
 Long Description
 """
 
+import logging
 import io
 import json
 import os.path
@@ -29,7 +30,8 @@ from jsonschema import Draft4Validator
 # from objects.multigraph import Multigraph
 # from objects.node import Node  # TODO add in original
 
-ssl._create_default_https_context = ssl._create_unverified_context
+
+logger = logging.getLogger(__name__)
 
 
 def load_json_string(jsonstring):
@@ -115,21 +117,13 @@ def validate_jsongraph(jsongraph, schema="", verbose=False):
 
     schema = Draft4Validator(schema)  # transform schema in a Schema validation object
 
-    errors = [error for error in schema.iter_errors(jg)]
-    if verbose and errors:
-        print("Problem with JSON Graph")
-        for error in errors:
-            print(error)
+    errors = []
+    for error in schema.iter_errors(jg):
+        logging.error(error)
+        errors.append(error)
 
-        quit()
-
-    elif verbose:
-        print("    Validated!")
-
-    if errors:
-        return errors
-
-    return (True, "")
+    status = len(errors) == 0
+    return status, errors
 
 
 def load_graphs(jsongraphs, validate=False, schema="", verbose=False):
@@ -138,8 +132,9 @@ def load_graphs(jsongraphs, validate=False, schema="", verbose=False):
     jgs = get_json(jsongraphs)
 
     if validate:
-        (status, results) = validate_jsongraph(jsongraphs, schema, verbose)
-        sys.exit("JSON Graph does not validate")
+        success, results = validate_jsongraph(jsongraphs, schema, verbose)
+        if not success:
+            raise TypeError("JSON Graph does not validate")
 
     if "graph" in jgs:
         yield jgs["graph"]
