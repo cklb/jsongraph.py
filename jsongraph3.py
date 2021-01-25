@@ -24,10 +24,10 @@ import urllib.parse
 import urllib.request
 
 from jsonschema import Draft4Validator
-from objects.edge import Edge
-from objects.graph import Graph
-from objects.multigraph import Multigraph
-from objects.node import Node  # TODO add in original
+# from objects.edge import Edge
+# from objects.graph import Graph
+# from objects.multigraph import Multigraph
+# from objects.node import Node  # TODO add in original
 
 ssl._create_default_https_context = ssl._create_unverified_context
 
