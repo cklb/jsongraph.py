@@ -18,11 +18,6 @@ import logging
 import io
 import json
 import os.path
-import ssl
-import sys
-import urllib.error
-import urllib.parse
-import urllib.request
 
 from jsonschema import Draft4Validator
 # from objects.edge import Edge
@@ -36,22 +31,8 @@ logger = logging.getLogger(__name__)
 
 def load_json_string(jsonstring):
     """Check if string is JSON and if so return python dictionary"""
-
-    try:
-        json_object = json.loads(jsonstring)
-    except ValueError as e:
-        return False
+    json_object = json.loads(jsonstring)
     return json_object
-
-
-def get_github_masterschema():
-    """Read JSON Graph Schema file from Github Master branch"""
-    link = "https://raw.githubusercontent.com/jsongraph/json-graph-specification/master/json-graph-schema_v2.json"
-    f = urllib.request.urlopen(link)
-    js = json.load(f)
-    f.close
-
-    return js
 
 
 def get_json(jsongraph):
@@ -67,21 +48,12 @@ def get_json(jsongraph):
         with open(jsongraph, "rb") as f:
             return json.load(f)
 
-    jg = load_json_string(jsongraph)
-    if jg:
-        return jg
-    else:
-        return False
+    return load_json_string(jsongraph)
 
 
-def validate_schema(schema="", verbose=False):
+def validate_schema(schema, verbose=False):
     """Validate schema file"""
-
-    if not schema:
-        schema = get_github_masterschema()
-    else:
-        schema = get_json(schema)
-
+    schema = get_json(schema)
     results = Draft4Validator.check_schema(schema)
 
     if verbose and results:
@@ -96,29 +68,30 @@ def validate_schema(schema="", verbose=False):
     return (True, "")
 
 
-def validate_jsongraph(jsongraph, schema="", verbose=False):
-    """Validate JSON Graph against given jsongraph object and schema object"""
+def validate_jsongraph(jsongraph, schema, verbose=False):
+    """
+    Validate JSON Graph against given jsongraph object and schema object
+    """
 
     jg = get_json(jsongraph)
-
-    if not schema:
-        schema = get_github_masterschema()
-    else:
-        schema = get_json(schema)
-
     if not jg:
-        sys.exit(
-            "JSON Graph parameter does not appear to be a file object, filepath or JSON string."
-        )
-    if not schema:
-        sys.exit(
-            "JSON Graph Schema parameter does not appear to be a file object, filepath or JSON string."
-        )
+        err = TypeError("JSON Graph parameter does not appear to be a "
+                        "file object, filepath or JSON string.")
+        logger.exception(err)
+        raise err
 
-    schema = Draft4Validator(schema)  # transform schema in a Schema validation object
+    schema = get_json(schema)
+    if not schema:
+        err = TypeError("Schema parameter does not appear to be a "
+                        "file object, filepath or JSON string.")
+        logger.exception(err)
+        raise err
+
+    # transform schema in a Schema validation object
+    validator = Draft4Validator(schema)
 
     errors = []
-    for error in schema.iter_errors(jg):
+    for error in validator.iter_errors(jg):
         logging.error(error)
         errors.append(error)
 
@@ -137,11 +110,10 @@ def load_graphs(jsongraphs, validate=False, schema="", verbose=False):
             raise TypeError("JSON Graph does not validate")
 
     if "graph" in jgs:
-        yield jgs["graph"]
+        return jgs["graph"]
 
     if "graphs" in jgs:
-        for graph in jgs["graphs"]:
-            yield graph
+        return jgs["graphs"]
 
 
 def test_example_graphs():
