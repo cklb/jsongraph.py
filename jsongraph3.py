@@ -99,21 +99,22 @@ def validate_jsongraph(jsongraph, schema, verbose=False):
     return status, errors
 
 
-def load_graphs(jsongraphs, validate=False, schema="", verbose=False):
+def load_graphs(jsongraphs, schema=None, verbose=False):
     """Loads one or more graphs from jsongraphs JSON as a generator"""
 
     jgs = get_json(jsongraphs)
 
-    if validate:
+    if schema is not None:
         success, results = validate_jsongraph(jsongraphs, schema, verbose)
         if not success:
             raise TypeError("JSON Graph does not validate")
 
     if "graph" in jgs:
         return jgs["graph"]
-
-    if "graphs" in jgs:
+    elif "graphs" in jgs:
         return jgs["graphs"]
+    else:
+        return jgs
 
 
 def test_example_graphs():
